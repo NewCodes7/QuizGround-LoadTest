@@ -1,0 +1,33 @@
+config:
+  target: "{{ $env.TARGET }}"
+  socketio:
+    query: 'game-id={{ $env.GAME_ID }}'
+    transports:
+      - websocket  # HTTP 폴링 제외, 순수 WebSocket만 사용
+  phases:
+    # Phase 1 (0~10초): 10,000명 일괄 접속 spike
+    # Fargate --count N 사용 시 arrivalCount가 N개 worker에 자동 분배됨
+    # ex) --count 10 → worker당 1,000명
+    - name: "spike - mass join"
+      duration: 10
+      arrivalCount: 10000
+  processor: "processors-10k.js"
+
+# Phase 2~4는 processors-10k.js 내부에서 타이밍 제어
+#
+# Phase 2 (10초~최대 80초): 전원 접속 대기 (setPlayerName 폴링)
+#   → 미접속 시 CONNECTION_TIMEOUT(80초) 에서 실패 처리
+#
+# Phase 3 (전원 접속 후 1분 대기 → 10분 게임):
+#   → setPlayerName done() 후 gameLoop 실행
+#   → 위치변경 평균 2회/초, 채팅 평균 0.5회/초 (랜덤 간격)
+#
+# Phase 4 (11분 이후): 각 vuser가 gameLoop 종료 시 자연 해제
+#   → 10분 게임이 vuser마다 미세하게 다른 타이밍에 종료 → 점진적 접속 해제
+
+scenarios:
+  - name: "10k spike game session"
+    engine: socketio
+    flow:
+      - function: "setPlayerName"  # 접속 + 전원 대기 + 1분 대기
+      - function: "gameLoop"       # 10분 게임 루프 후 소켓 해제

@@ -10,7 +10,15 @@
     "init:dev": "TARGET=http://localhost:3000/game node ./create-room.js",
     "init:prod": "TARGET=https://quizground.site:3333/game DURATION=10000 node ./create-room.js",
     "start:dev": "TARGET=http://localhost:3000/game artillery run ./game-scenario.yml",
-    "start:prod": "TARGET=https://quizground.site:3333/game GAME_ID=672808 artillery run ./game-scenario.yml"
+    "start:prod": "TARGET=https://quizground.site:3333/game GAME_ID=672808 artillery run ./game-scenario.yml",
+
+    "init:dev:10k": "TARGET=http://localhost:3000/game node ./create-room-10k.js",
+    "init:prod:10k": "TARGET=https://quizground.site:3333/game node ./create-room-10k.js",
+    "start:dev:10k": "TARGET=http://localhost:3000/game GAME_ID=$GAME_ID artillery run ./game-scenario-10k.yml",
+    "start:prod:10k": "TARGET=https://quizground.site:3333/game GAME_ID=$GAME_ID artillery run ./game-scenario-10k.yml",
+
+    "fargate:10k": "artillery run-fargate --region ap-northeast-2 --count 10 --cpu 2 --memory 4 --spot ./game-scenario-10k.yml",
+    "fargate:10k:heavy": "artillery run-fargate --region ap-northeast-2 --count 10 --cpu 4 --memory 8 ./game-scenario-10k.yml"
   },
   "author": "",
   "license": "ISC",
