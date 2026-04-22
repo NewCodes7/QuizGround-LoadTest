@@ -1,0 +1,43 @@
+config:
+  target: "{{ $env.TARGET }}"
+  socketio:
+    query: 'game-id={{ $env.GAME_ID }}'
+  phases:
+    - duration: 10 # 테스트 시간 (arrivalRate * duration = 총 유저 수)
+      arrivalRate: 1 # 1초에 1명 → 총 10명
+  processor: "processors-10.js"
+
+scenarios:
+  - name: "10 players test"
+    engine: socketio
+    flow:
+      - function: 'setPlayerName'
+      - function: 'updatePosition'
+      - function: 'chatMessage'
+      - function: 'updatePosition'
+      - function: 'updatePosition'
+      - function: 'chatMessage'
+      - function: 'updatePosition'
+      - function: 'updatePosition'
+      - function: 'updatePosition'
+      - function: 'chatMessage'
+      - function: 'updatePosition'
+      - function: 'updatePosition'
+      - function: 'chatMessage'
+      - function: 'updatePosition'
+      - function: 'updatePosition'
+      - function: 'updatePosition'
+      - function: 'chatMessage'
+      - function: 'updatePosition'
+      - function: 'updatePosition'
+      - function: 'updatePosition'
+      - function: 'chatMessage'
+      - function: 'updatePosition'
+      - function: 'updatePosition'
+      - function: 'chatMessage'
+      - function: 'updatePosition'
+      - function: 'updatePosition'
+      - function: 'updatePosition'
+      - function: 'chatMessage'
+      - function: 'updatePosition'
+      - function: 'updatePosition'
