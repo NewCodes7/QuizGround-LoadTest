@@ -4,7 +4,7 @@ const fsSync = require('fs');
 /*
 * 초기 필요한 상수 정의
 */
-const MIN_PLAYERS_FOR_TEST = 10;
+const MIN_PLAYERS_FOR_TEST = 5; // Fargate 컨테이너당 플레이어 수 (총 10명 / 2 컨테이너)
 const GAME_ID = process.env.GAME_ID;
 
 const DURATION_TIME = 10000; // game-scenario-10.yml duration과 동일하게 설정

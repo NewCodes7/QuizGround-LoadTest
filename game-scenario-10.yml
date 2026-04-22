@@ -2,6 +2,8 @@ config:
   target: "{{ $env.TARGET }}"
   socketio:
     query: 'game-id={{ $env.GAME_ID }}'
+    transports:
+      - websocket
   phases:
     - duration: 5 # worker당 5명 (arrivalRate 1 × duration 5), Fargate --count 2 → 총 10명
       arrivalRate: 1 # 1초에 1명 → worker당 5명

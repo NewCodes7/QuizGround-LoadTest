@@ -1,7 +1,9 @@
 config:
   target: "{{ $env.TARGET }}"
-  socketio: 
+  socketio:
     query: 'game-id={{ $env.GAME_ID }}'
+    transports:
+      - websocket
   phases:
     - duration: 20 # 테스트 시간
       arrivalRate: 5 # 1초에 몇 명의 유저가 들어올 것인지 설정 (arrivalRate * duration = 총 유저 수)
