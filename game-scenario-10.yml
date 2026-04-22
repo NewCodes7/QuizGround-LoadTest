@@ -3,8 +3,8 @@ config:
   socketio:
     query: 'game-id={{ $env.GAME_ID }}'
   phases:
-    - duration: 10 # 테스트 시간 (arrivalRate * duration = 총 유저 수)
-      arrivalRate: 1 # 1초에 1명 → 총 10명
+    - duration: 5 # worker당 5명 (arrivalRate 1 × duration 5), Fargate --count 2 → 총 10명
+      arrivalRate: 1 # 1초에 1명 → worker당 5명
   processor: "processors-10.js"
 
 scenarios:
