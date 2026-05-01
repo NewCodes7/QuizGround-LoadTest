@@ -1,5 +1,7 @@
 config:
   target: "{{ $env.TARGET }}"
+  engines:
+    msgpack-socketio: {}
   socketio:
     query: 'game-id={{ $env.GAME_ID }}'
     transports:
@@ -11,7 +13,7 @@ config:
 
 scenarios:
   - name: "10 players test"
-    engine: socketio
+    engine: msgpack-socketio
     flow:
       - function: 'setPlayerName'
       - function: 'updatePosition'

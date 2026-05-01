@@ -1,5 +1,7 @@
 config:
   target: "{{ $env.TARGET }}"
+  engines:
+    msgpack-socketio: {}
   socketio:
     query: 'game-id={{ $env.GAME_ID }}'
     transports:
@@ -27,7 +29,7 @@ config:
 
 scenarios:
   - name: "10k spike game session"
-    engine: socketio
+    engine: msgpack-socketio
     flow:
       - function: "setPlayerName"  # 접속 + 전원 대기 + 1분 대기
       - function: "gameLoop"       # 10분 게임 루프 후 소켓 해제

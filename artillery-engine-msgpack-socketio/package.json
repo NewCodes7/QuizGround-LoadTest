@@ -1,0 +1,5 @@
+{
+  "name": "artillery-engine-msgpack-socketio",
+  "version": "1.0.0",
+  "main": "index.js"
+}

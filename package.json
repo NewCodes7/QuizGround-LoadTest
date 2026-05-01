@@ -1,8 +1,10 @@
 {
   "dependencies": {
     "artillery": "^2.0.30",
+    "artillery-engine-msgpack-socketio": "file:./artillery-engine-msgpack-socketio",
     "concurrently": "^9.1.0",
-    "socket.io-client": "^4.8.1"
+    "socket.io-client": "^4.8.1",
+    "socket.io-msgpack-parser": "^3.0.2"
   },
   "name": "artillery-quiz-ground",
   "version": "1.0.0",
