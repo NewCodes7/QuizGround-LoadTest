@@ -1,48 +1,94 @@
-const SocketIoEngine = require('@artilleryio/int-core/lib/engine_socketio');
-const msgpackParser = require('socket.io-msgpack-parser');
-const io = require('socket.io-client');
-const wildcardPatch = require('socketio-wildcard')(io.Manager);
-const _ = require('lodash');
-const engineUtil = require('@artilleryio/int-commons').engine_util;
-const template = engineUtil.template;
+'use strict';
 
-function MsgpackSocketIOEngine(script) {
-  SocketIoEngine.call(this, script);
+// Standalone engine: only uses packages bundled in the Fargate test bundle.
+// Avoids requiring Artillery internals (@artilleryio/int-core, int-commons, socketio-wildcard)
+// which are not resolvable from the test bundle's node_modules on Fargate workers.
+
+const io = require('socket.io-client');
+const msgpackParser = require('socket.io-msgpack-parser');
+
+function resolveEnvVars(str) {
+  if (typeof str !== 'string') return str;
+  return str.replace(/\{\{\s*\$env\.(\w+)\s*\}\}/g, (_, key) => process.env[key] || '');
 }
 
-MsgpackSocketIOEngine.prototype = Object.create(SocketIoEngine.prototype);
-MsgpackSocketIOEngine.prototype.constructor = MsgpackSocketIOEngine;
+function MsgpackSocketIOEngine(script) {
+  this.config = script.config;
+  this.socketioOpts = script.config.socketio || {};
+}
 
-MsgpackSocketIOEngine.prototype.loadContextSocket = function (namespace, context, cb) {
-  context.sockets = context.sockets || {};
+MsgpackSocketIOEngine.prototype.createScenario = function (scenarioSpec, ee) {
+  const self = this;
+  const processor = self.config.processor || {};
 
-  if (!context.sockets[namespace]) {
-    const target = this.config.target + namespace;
-    const tls = this.config.tls || {};
+  const steps = scenarioSpec.flow
+    .filter((step) => step.function)
+    .map((step) => {
+      const fn = processor[step.function];
+      if (!fn) {
+        return (context, callback) => {
+          ee.emit('error', `Undefined function "${step.function}"`);
+          callback(null, context);
+        };
+      }
+      return (context, callback) => fn(context, ee, (err) => callback(err, context));
+    });
 
-    const socketioOpts = template(this.socketioOpts, context);
-    const options = _.extend({}, socketioOpts, tls, { parser: msgpackParser });
+  return function scenario(initialContext, callback) {
+    ee.emit('started');
 
-    const socket = io(target, options);
-    context.sockets[namespace] = socket;
+    const query = resolveEnvVars(self.socketioOpts.query || '');
+    const transports = self.socketioOpts.transports || ['websocket'];
 
-    wildcardPatch(socket);
+    const socket = io(self.config.target, {
+      query,
+      transports,
+      parser: msgpackParser,
+    });
 
-    socket.on('*', () => {
+    const context = Object.assign({}, initialContext, {
+      sockets: { '': socket },
+      vars: Object.assign({}, (initialContext && initialContext.vars) || {}),
+      __receivedMessageCount: 0,
+    });
+
+    // socket.io-client v3+ supports onAny — no socketio-wildcard needed
+    socket.onAny(() => {
       context.__receivedMessageCount++;
     });
 
     socket.once('connect', () => {
-      cb(null, socket);
+      let i = 0;
+      function runNext(err) {
+        if (err) {
+          socket.disconnect();
+          ee.emit('error', err.message || String(err));
+          return callback(err, context);
+        }
+        if (i >= steps.length) {
+          ee.emit('counter', 'socketio.received_messages', context.__receivedMessageCount);
+          socket.disconnect();
+          return callback(null, context);
+        }
+        steps[i++](context, runNext);
+      }
+      runNext();
     });
+
     socket.once('connect_error', (err) => {
-      cb(err, null);
+      ee.emit('error', err.message || String(err));
+      return callback(err, context);
     });
-    socket.once('error', (err) => {
-      cb(err, socket);
+  };
+};
+
+MsgpackSocketIOEngine.prototype.closeContextSockets = function (context) {
+  if (context && context.sockets) {
+    Object.values(context.sockets).forEach((socket) => {
+      if (socket && typeof socket.disconnect === 'function') {
+        socket.disconnect();
+      }
     });
-  } else {
-    return cb(null, context.sockets[namespace]);
   }
 };
 
