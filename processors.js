@@ -1,5 +1,7 @@
 const fs = require('fs').promises;
 const fsSync = require('fs');
+const io = require('socket.io-client');
+const msgpackParser = require('socket.io-msgpack-parser');
 
 /* 
 * 초기 필요한 상수 정의 
@@ -135,7 +137,32 @@ function chatMessage(userContext, events, done) {
     }, Math.random() * 400 + 300);
 }
 
+function connectSocket(userContext, events, done) {
+    const socket = io(process.env.TARGET, {
+        query: `game-id=${process.env.GAME_ID}`,
+        transports: ['websocket'],
+        parser: msgpackParser,
+    });
+
+    userContext.sockets = userContext.sockets || {};
+    userContext.sockets[''] = socket;
+
+    socket.once('connect', () => done());
+    socket.once('connect_error', (err) => {
+        console.error('[ERROR] Socket connect_error:', err.message);
+        done(err);
+    });
+}
+
+function disconnectSocket(userContext, events, done) {
+    const socket = userContext.sockets && userContext.sockets[''];
+    if (socket) socket.disconnect();
+    done();
+}
+
 module.exports = {
+    connectSocket,
+    disconnectSocket,
     setPlayerName,
     updatePosition,
     chatMessage
