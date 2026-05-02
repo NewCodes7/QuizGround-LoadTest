@@ -1,7 +1,7 @@
 const fs = require('fs').promises;
 const fsSync = require('fs');
 const io = require('socket.io-client');
-const msgpackParser = require('socket.io-msgpack-parser');
+const msgpackParser = require('./msgpackr-parser');
 
 /* 
 * 초기 필요한 상수 정의 
@@ -139,8 +139,9 @@ function chatMessage(userContext, events, done) {
 
 function connectSocket(userContext, events, done) {
     const socket = io(process.env.TARGET, {
-        query: `game-id=${process.env.GAME_ID}`,
+        query: { 'game-id': process.env.GAME_ID },
         transports: ['websocket'],
+        withCredentials: true,
         parser: msgpackParser,
     });
 
