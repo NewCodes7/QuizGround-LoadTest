@@ -46,7 +46,41 @@ async function checkCounter() {
     }
 }
 
-/* 
+/*
+* 서버 선택 (클라이언트 사이드 로드밸런싱)
+*/
+async function pickServer() {
+    const node1 = process.env.NODE1_URL;
+    const node2 = process.env.NODE2_URL;
+
+    if (!node1 || !node2) {
+        return process.env.TARGET;
+    }
+
+    async function getPlayerCount(baseUrl) {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 2000);
+        try {
+            const res = await fetch(`${baseUrl}/api/status`, { signal: controller.signal });
+            const data = await res.json();
+            return data.players ?? Infinity;
+        } catch {
+            return Infinity;
+        } finally {
+            clearTimeout(timeoutId);
+        }
+    }
+
+    const [count1, count2] = await Promise.all([
+        getPlayerCount(node1),
+        getPlayerCount(node2),
+    ]);
+
+    const selectedBase = count1 <= count2 ? node1 : node2;
+    return `${selectedBase}/game`;
+}
+
+/*
 * 본격적인 테스트를 위한 함수들
 */
 function getRandomPosition() {
@@ -62,12 +96,9 @@ function setPlayerName(userContext, events, done) {
     userContext.vars.userId = `${Math.random()}번째 유저`;
 
     const socket = userContext.sockets[''];
-    
-    socket.on('getSelfId', (response) => {
-        userContext.vars.myPlayerId = response.playerId;
-        const playerName = userContext.vars.userId;
-        socket.emit('setPlayerName', { playerName });
-    });
+
+    // myPlayerId는 connectSocket에서 이미 저장됨
+    socket.emit('setPlayerName', { playerName: userContext.vars.userId });
 
     socket.on('setPlayerName', async (response) => {
         const { playerId, playerName } = response;
@@ -138,19 +169,28 @@ function chatMessage(userContext, events, done) {
 }
 
 function connectSocket(userContext, events, done) {
-    const socket = io(process.env.TARGET, {
-        query: { 'game-id': process.env.GAME_ID },
-        transports: ['websocket'],
-        withCredentials: true,
-        parser: msgpackParser,
-    });
+    pickServer().then(url => {
+        const socket = io(url, {
+            query: { 'game-id': process.env.GAME_ID },
+            transports: ['websocket'],
+            withCredentials: true,
+            parser: msgpackParser,
+        });
 
-    userContext.sockets = userContext.sockets || {};
-    userContext.sockets[''] = socket;
+        userContext.sockets = userContext.sockets || {};
+        userContext.sockets[''] = socket;
 
-    socket.once('connect', () => done());
-    socket.once('connect_error', (err) => {
-        console.error('[ERROR] Socket connect_error:', err.message);
+        // getSelfId까지 기다려야 setPlayerName에서 race condition 없이 바로 emit 가능
+        socket.once('getSelfId', (response) => {
+            userContext.vars.myPlayerId = response.playerId;
+            done();
+        });
+        socket.once('connect_error', (err) => {
+            console.error('[ERROR] Socket connect_error:', err.message);
+            done(err);
+        });
+    }).catch(err => {
+        console.error('[ERROR] pickServer error:', err.message);
         done(err);
     });
 }
@@ -166,5 +206,6 @@ module.exports = {
     disconnectSocket,
     setPlayerName,
     updatePosition,
-    chatMessage
+    chatMessage,
+    pickServer,
 };

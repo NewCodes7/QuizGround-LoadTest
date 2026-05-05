@@ -22,22 +22,26 @@ Artillery를 사용해 [QuizGround](https://github.com/boostcampwm-2024/web10-bo
 **1번 터미널 - 게임방 생성:**
 ```bash
 npm run init:dev    # localhost:3000
-npm run init:prod   # quizground.site:3333
+npm run init:prod   # NODE1_IP, NODE2_IP를 실제 IP로 교체 후 실행
 ```
 
 **2번 터미널 - 부하테스트 실행:**
 ```bash
 npm run start:dev   # localhost:3000
-npm run start:prod  # quizground.site:3333 (GAME_ID 환경변수 필요)
+npm run start:prod  # NODE1_IP, NODE2_IP를 실제 IP로 교체 후 실행 (GAME_ID 환경변수 필요)
 ```
 
 ## 환경변수
 
 | 변수 | 설명 | 기본값 |
 |------|------|--------|
-| `TARGET` | 소켓 서버 URL | `http://localhost:3000/game` |
+| `NODE1_URL` | 첫 번째 WAS 베이스 URL (예: `http://IP:3000`) | - |
+| `NODE2_URL` | 두 번째 WAS 베이스 URL (예: `http://IP:3000`) | - |
+| `TARGET` | 소켓 서버 URL (`NODE1_URL`/`NODE2_URL` 미설정 시 fallback) | `http://localhost:3000/game` |
 | `GAME_ID` | 테스트할 게임방 ID | - |
 | `DURATION` | 초기화 대기 시간(ms) | - |
+
+> prod 실행 시 `package.json`의 `<NODE1_IP>`, `<NODE2_IP>` 플레이스홀더를 실제 서버 IP로 교체하거나, 환경변수로 직접 전달한다.
 
 ## 주요 상수 (processors.js)
 

@@ -1,12 +1,13 @@
 // 초기에 게임방 하나를 만들기 위한 파일
 const { io } = require('socket.io-client');
+const { pickServer } = require('./processors');
 
 const GAME_OPTION = "title=test;gameMode=RANKING;maxPlayerCount=210;isPublic=true";
-const TARGET = process.env.TARGET || 'http://localhost:3000/game';
 
 async function createRoom() {
+    const url = await pickServer();
     return new Promise((resolve, reject) => {
-        const socket = io(TARGET, {
+        const socket = io(url, {
             query: {
                 "create-room": GAME_OPTION
             }
