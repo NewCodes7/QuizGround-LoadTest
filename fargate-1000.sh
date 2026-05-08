@@ -4,13 +4,13 @@ set -e
 NODE1_URL="${NODE1_URL:-http://34.64.246.135:1027}"
 NODE2_URL="${NODE2_URL:-http://34.22.81.144:1027}"
 TARGET="${TARGET:-${NODE1_URL}/game}"
-WORKERS_COUNT="${WORKERS_COUNT:-2}"
+WORKERS_COUNT="${WORKERS_COUNT:-5}"
 CPU="${CPU:-1}"
 MEMORY="${MEMORY:-2}"
 
 if [ -z "$GAME_ID" ]; then
   echo "Error: GAME_ID is required"
-  echo "Usage: GAME_ID=12345 npm run fargate:200"
+  echo "Usage: GAME_ID=12345 npm run fargate:1000"
   exit 1
 fi
 
@@ -38,6 +38,6 @@ artillery run-fargate \
   --memory "$MEMORY" \
   $SPOT_FLAG \
   --dotenv "$ENV_FILE" \
-  ./game-scenario.yml
+  ./game-scenario-1000.yml
 
 rm -f "$ENV_FILE"

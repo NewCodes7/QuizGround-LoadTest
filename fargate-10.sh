@@ -1,7 +1,9 @@
 #!/bin/bash
 set -e
 
-TARGET="http://34.158.197.135/game"
+NODE1_URL="${NODE1_URL:-http://34.64.246.135:1027}"
+NODE2_URL="${NODE2_URL:-http://34.22.81.144:1027}"
+TARGET="${TARGET:-${NODE1_URL}/game}"
 WORKERS_COUNT="${WORKERS_COUNT:-2}"
 CPU="${CPU:-1}"
 MEMORY="${MEMORY:-2}"
@@ -15,6 +17,8 @@ fi
 ENV_FILE=$(mktemp /tmp/.env.artillery.XXXXXX)
 echo "TARGET=$TARGET" > "$ENV_FILE"
 echo "GAME_ID=$GAME_ID" >> "$ENV_FILE"
+echo "NODE1_URL=$NODE1_URL" >> "$ENV_FILE"
+echo "NODE2_URL=$NODE2_URL" >> "$ENV_FILE"
 
 SPOT_FLAG=""
 if [ "${SPOT:-1}" = "1" ]; then
@@ -22,6 +26,8 @@ if [ "${SPOT:-1}" = "1" ]; then
 fi
 
 echo ">> TARGET=$TARGET"
+echo ">> NODE1_URL=$NODE1_URL"
+echo ">> NODE2_URL=$NODE2_URL"
 echo ">> GAME_ID=$GAME_ID"
 echo ">> WORKERS_COUNT=$WORKERS_COUNT, CPU=$CPU, MEMORY=$MEMORY"
 

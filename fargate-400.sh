@@ -10,7 +10,7 @@ MEMORY="${MEMORY:-2}"
 
 if [ -z "$GAME_ID" ]; then
   echo "Error: GAME_ID is required"
-  echo "Usage: GAME_ID=12345 npm run fargate:200"
+  echo "Usage: GAME_ID=12345 npm run fargate:400"
   exit 1
 fi
 
@@ -38,6 +38,6 @@ artillery run-fargate \
   --memory "$MEMORY" \
   $SPOT_FLAG \
   --dotenv "$ENV_FILE" \
-  ./game-scenario.yml
+  ./game-scenario-400.yml
 
 rm -f "$ENV_FILE"

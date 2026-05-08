@@ -29,7 +29,17 @@
     "init:prod:200": "TARGET=http://34.64.246.135:1027/game NODE1_URL=http://34.64.246.135:1027 NODE2_URL=http://34.22.81.144:1027 node ./create-room.js",
     "start:dev:200": "TARGET=http://localhost:1027/game GAME_ID=$GAME_ID artillery run ./game-scenario.yml",
     "start:prod:200": "TARGET=http://34.64.246.135:1027/game NODE1_URL=http://34.64.246.135:1027 NODE2_URL=http://34.22.81.144:1027 GAME_ID=$GAME_ID artillery run ./game-scenario.yml",
-    "fargate:200": "bash ./fargate-200.sh"
+    "fargate:200": "bash ./fargate-200.sh",
+    "init:dev:400": "TARGET=http://localhost:1027/game node ./create-room.js",
+    "init:prod:400": "TARGET=http://34.64.246.135:1027/game NODE1_URL=http://34.64.246.135:1027 NODE2_URL=http://34.22.81.144:1027 node ./create-room.js",
+    "start:dev:400": "TARGET=http://localhost:1027/game GAME_ID=$GAME_ID artillery run ./game-scenario-400.yml",
+    "start:prod:400": "TARGET=http://34.64.246.135:1027/game NODE1_URL=http://34.64.246.135:1027 NODE2_URL=http://34.22.81.144:1027 GAME_ID=$GAME_ID artillery run ./game-scenario-400.yml",
+    "fargate:400": "bash ./fargate-400.sh",
+    "init:dev:1000": "TARGET=http://localhost:1027/game node ./create-room.js",
+    "init:prod:1000": "TARGET=http://34.64.246.135:1027/game NODE1_URL=http://34.64.246.135:1027 NODE2_URL=http://34.22.81.144:1027 node ./create-room.js",
+    "start:dev:1000": "TARGET=http://localhost:1027/game GAME_ID=$GAME_ID artillery run ./game-scenario-1000.yml",
+    "start:prod:1000": "TARGET=http://34.64.246.135:1027/game NODE1_URL=http://34.64.246.135:1027 NODE2_URL=http://34.22.81.144:1027 GAME_ID=$GAME_ID artillery run ./game-scenario-1000.yml",
+    "fargate:1000": "bash ./fargate-1000.sh"
   },
   "author": "",
   "license": "ISC",

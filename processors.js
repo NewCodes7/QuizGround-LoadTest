@@ -1,50 +1,22 @@
-const fs = require('fs').promises;
-const fsSync = require('fs');
 const io = require('socket.io-client');
 const msgpackParser = require('./msgpackr-parser');
 
-/* 
-* 초기 필요한 상수 정의 
+/*
+* 초기 필요한 상수 정의
 */
-const MIN_PLAYERS_FOR_TEST = 100;
 const GAME_ID = process.env.GAME_ID;
 
-// TODO: 상수 설정 자동화
-const DURATION_TIME = 20000; // game-scenraio.yml duration과 동일하게 설정
-const FIRST_WAIT_TIME = DURATION_TIME + 10000;
+// game-scenario.yml duration과 동일하게 설정
+const DURATION_TIME = 20000;
 
-/* 
-* 플레이어가 현재 몇 명 접속했는지 파악하기 위한 파일 관련 함수
+/*
+* 타임스탬프 기반 barrier 동기화
+*
+* counter 기반 동기화는 Artillery worker thread 간 메모리/파일이 신뢰할 수 없어 실패.
+* 첫 번째 VU가 setPlayerName에 도달하는 시점 기준으로 (DURATION_TIME + 여유) 후를
+* barrier로 설정하면, 각 VU는 별도 공유 없이 같은 시각에 테스트를 시작할 수 있음.
 */
-const COUNTER_FILE = 'thread-counter.txt';
-
-try {
-    fsSync.writeFileSync(COUNTER_FILE, '0', 'utf8');
-} catch (err) {
-    console.error('파일 읽기 실패:', err);
-}
-
-async function incrementCounter() {
-    try {
-        const currentCount = await fs.readFile(COUNTER_FILE, 'utf8');
-        const newCount = parseInt(currentCount) + 1;
-        await fs.writeFile(COUNTER_FILE, newCount.toString(), 'utf8');
-        return newCount;
-    } catch (err) {
-        console.error('카운트 증가 실패:', err);
-        return -1;
-    }
-}
-
-async function checkCounter() {
-    try {
-        const currentCount = await fs.readFile(COUNTER_FILE, 'utf8');
-        return parseInt(currentCount);
-    } catch (err) {
-        console.error('카운트 읽기 실패:', err);
-        return -1;
-    }
-}
+let barrierTime = null;
 
 /*
 * 서버 선택 (클라이언트 사이드 로드밸런싱)
@@ -87,53 +59,57 @@ function getRandomPosition() {
     return [Math.random(), Math.random()];
 }
 
-function setPlayerName(userContext, events, done) {
-    let doneCalled = false;
-    let timeoutId;
+/*
+* 실제 서버 연결 흐름 (socket.ts 기준):
+* - joinRoom(gameId)는 connect({ 'game-id': gameId }) 와 동일 (이벤트 emit 아님)
+* - handleConnection에서 소켓을 방에 join 후 getSelfId emit
+* - connect 이벤트 발생 시점에 이미 방에 입장 완료
+*/
+function connectSocket(userContext, events, done) {
+    pickServer().then(url => {
+        const socket = io(url, {
+            query: { 'game-id': process.env.GAME_ID },
+            transports: ['websocket'],
+            withCredentials: true,
+            parser: msgpackParser,
+        });
 
-    incrementCounter();
+        userContext.sockets = userContext.sockets || {};
+        userContext.sockets[''] = socket;
+
+        socket.once('connect', () => done());
+        socket.once('connect_error', (err) => {
+            console.error('[ERROR] Socket connect_error:', err.message);
+            done(err);
+        });
+    }).catch(err => {
+        console.error('[ERROR] pickServer error:', err.message);
+        done(err);
+    });
+}
+
+function disconnectSocket(userContext, events, done) {
+    const socket = userContext.sockets && userContext.sockets[''];
+    if (socket) socket.disconnect();
+    done();
+}
+
+function setPlayerName(userContext, events, done) {
+    // 첫 번째 VU가 이 함수에 도달했을 때 barrier 설정
+    // DURATION_TIME 후엔 모든 VU가 접속 완료 → 5초 여유 추가
+    if (!barrierTime) {
+        barrierTime = Date.now() + DURATION_TIME + 5000;
+    }
 
     userContext.vars.userId = `${Math.random()}번째 유저`;
 
     const socket = userContext.sockets[''];
-
-    // myPlayerId는 connectSocket에서 이미 저장됨
     socket.emit('setPlayerName', { playerName: userContext.vars.userId });
 
-    socket.on('setPlayerName', async (response) => {
-        const { playerId, playerName } = response;
-        if (playerId === userContext.vars.myPlayerId && playerName === userContext.vars.userId) {
-            if (!doneCalled) {
-                const waitForPlayers = async () => {
-                    const currentCount = await checkCounter();
-                    console.log(`플레이어들을 기다리는 중... 현재 접속 인원: ${currentCount}명`);
-                    
-                    // 중요! 원하는 인원만큼 들어와야 게임 시작하게 타이밍 조절 
-                    if (Number(currentCount) >= MIN_PLAYERS_FOR_TEST) {
-                        console.log(`${currentCount}명의 플레이어가 접속했습니다. 테스트를 시작합니다!`);
-                        if (!doneCalled) {
-                            doneCalled = true;
-                            clearTimeout(timeoutId);
-                            done();
-                        }
-                    } else if (!doneCalled) {
-                        setTimeout(waitForPlayers, 1000);
-                    }
-                };
-
-                waitForPlayers();
-            }
-        } 
-    });
-
-    timeoutId = setTimeout(() => {
-        if (!doneCalled) {
-            console.error('[ERROR] setPlayerName timed out');
-            events.emit('counter', 'total_count.fail.set_player_name', 1);
-            doneCalled = true;
-            done(new Error('Operation timed out'));
-        }
-    }, FIRST_WAIT_TIME);
+    // barrier까지 남은 시간 대기 (늦게 합류한 VU는 짧게 대기)
+    const waitTime = Math.max(0, barrierTime - Date.now());
+    console.log(`플레이어 이름 설정 완료, ${Math.round(waitTime / 1000)}초 후 테스트 시작`);
+    setTimeout(() => done(), waitTime);
 }
 
 function updatePosition(userContext, events, done) {
@@ -156,49 +132,16 @@ function chatMessage(userContext, events, done) {
     const socket = userContext.sockets[''];
 
     const newMessage = `이것은 플레이어가 보내는 고유한 메시지입니다! ${Math.random()}`;
- 
+
     socket.emit('chatMessage', {
         gameId: GAME_ID,
         message: newMessage
     });
- 
+
     // 0.3 ~ 0.7초 사이의 랜덤한 시간을 기다리고 done()
     setTimeout(() => {
         return done();
     }, Math.random() * 400 + 300);
-}
-
-function connectSocket(userContext, events, done) {
-    pickServer().then(url => {
-        const socket = io(url, {
-            query: { 'game-id': process.env.GAME_ID },
-            transports: ['websocket'],
-            withCredentials: true,
-            parser: msgpackParser,
-        });
-
-        userContext.sockets = userContext.sockets || {};
-        userContext.sockets[''] = socket;
-
-        // getSelfId까지 기다려야 setPlayerName에서 race condition 없이 바로 emit 가능
-        socket.once('getSelfId', (response) => {
-            userContext.vars.myPlayerId = response.playerId;
-            done();
-        });
-        socket.once('connect_error', (err) => {
-            console.error('[ERROR] Socket connect_error:', err.message);
-            done(err);
-        });
-    }).catch(err => {
-        console.error('[ERROR] pickServer error:', err.message);
-        done(err);
-    });
-}
-
-function disconnectSocket(userContext, events, done) {
-    const socket = userContext.sockets && userContext.sockets[''];
-    if (socket) socket.disconnect();
-    done();
 }
 
 module.exports = {
