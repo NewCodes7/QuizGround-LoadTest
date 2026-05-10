@@ -34,7 +34,7 @@
     "fargate:200": "WORKERS_COUNT=2 SCENARIO=./game-scenario.yml bash ./fargate.sh",
     "fargate:400": "WORKERS_COUNT=2 SCENARIO=./game-scenario-400.yml bash ./fargate.sh",
     "fargate:1000": "WORKERS_COUNT=5 SCENARIO=./game-scenario-400.yml bash ./fargate.sh",
-    "fargate:2000": "WORKERS_COUNT=10 SCENARIO=./game-scenario-400.yml bash ./fargate.sh",
+    "fargate:2000": "CPU=2 MEMORY=4 WORKERS_COUNT=10 SCENARIO=./game-scenario-400.yml bash ./fargate.sh",
     "fargate:2000:heavy": "CPU=4 MEMORY=8 SPOT=0 WORKERS_COUNT=10 SCENARIO=./game-scenario-400.yml bash ./fargate.sh"
   },
   "author": "",

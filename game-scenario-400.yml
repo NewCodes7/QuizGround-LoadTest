@@ -1,8 +1,8 @@
 config:
   target: "{{ $env.TARGET }}"
   phases:
-    - duration: 20 # 테스트 시간
-      arrivalRate: 10 # worker당 200명 (10 × 20s) — fargate --count으로 총 인원 조절
+    - duration: 50 # 테스트 시간
+      arrivalRate: 4 # worker당 200명 (4 × 50s) — fargate --count으로 총 인원 조절
   processor: "processors.js"
 
 scenarios:

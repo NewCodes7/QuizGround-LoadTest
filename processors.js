@@ -7,7 +7,7 @@ const msgpackParser = require('./msgpackr-parser');
 const GAME_ID = process.env.GAME_ID;
 
 // game-scenario.yml duration과 동일하게 설정
-const DURATION_TIME = 20000;
+const DURATION_TIME = 50000;
 
 /*
 * 타임스탬프 기반 barrier 동기화
@@ -72,6 +72,8 @@ function connectSocket(userContext, events, done) {
             transports: ['websocket'],
             withCredentials: true,
             parser: msgpackParser,
+            reconnection: false,
+            timeout: 60000,
         });
 
         userContext.sockets = userContext.sockets || {};
@@ -98,7 +100,7 @@ function setPlayerName(userContext, events, done) {
     // 첫 번째 VU가 이 함수에 도달했을 때 barrier 설정
     // DURATION_TIME 후엔 모든 VU가 접속 완료 → 5초 여유 추가
     if (!barrierTime) {
-        barrierTime = Date.now() + DURATION_TIME + 5000;
+        barrierTime = Date.now() + DURATION_TIME + 10000;
     }
 
     userContext.vars.userId = `${Math.random()}번째 유저`;
