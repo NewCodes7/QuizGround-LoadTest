@@ -4,13 +4,14 @@ set -e
 NODE1_URL="${NODE1_URL:-http://34.64.246.135:1027}"
 NODE2_URL="${NODE2_URL:-http://34.22.81.144:1027}"
 TARGET="${TARGET:-${NODE1_URL}/game}"
-WORKERS_COUNT="${WORKERS_COUNT:-5}"
+WORKERS_COUNT="${WORKERS_COUNT:-2}"
 CPU="${CPU:-1}"
 MEMORY="${MEMORY:-2}"
+SCENARIO="${SCENARIO:-./game-scenario.yml}"
 
 if [ -z "$GAME_ID" ]; then
   echo "Error: GAME_ID is required"
-  echo "Usage: GAME_ID=12345 npm run fargate:1000"
+  echo "Usage: GAME_ID=12345 WORKERS_COUNT=2 SCENARIO=./game-scenario.yml bash fargate.sh"
   exit 1
 fi
 
@@ -25,6 +26,7 @@ if [ "${SPOT:-1}" = "1" ]; then
   SPOT_FLAG="--spot"
 fi
 
+echo ">> SCENARIO=$SCENARIO"
 echo ">> TARGET=$TARGET"
 echo ">> NODE1_URL=$NODE1_URL"
 echo ">> NODE2_URL=$NODE2_URL"
@@ -38,6 +40,6 @@ artillery run-fargate \
   --memory "$MEMORY" \
   $SPOT_FLAG \
   --dotenv "$ENV_FILE" \
-  ./game-scenario-1000.yml
+  "$SCENARIO"
 
 rm -f "$ENV_FILE"
